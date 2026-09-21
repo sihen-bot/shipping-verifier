@@ -13,7 +13,8 @@ public class StorageAvailabilityFilter extends OncePerRequestFilter {
     public StorageAvailabilityFilter(DurableData data) { this.data=data; }
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)throws ServletException,IOException {
         if(request.getRequestURI().startsWith("/api/") && !request.getRequestURI().equals("/api/admin/storage")
-                && !request.getRequestURI().equals("/api/session/csrf") && !data.ready()) {
+                && !request.getRequestURI().equals("/api/session/csrf")
+                && !request.getRequestURI().equals("/api/demo") && !data.ready()) {
             response.setStatus(503);response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Data storage needs recovery. Restart the service to restore saved database records.\"}");return;
         }

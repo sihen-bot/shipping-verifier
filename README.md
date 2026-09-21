@@ -6,7 +6,7 @@ Built for the Averis x Monash Hackathon 2026.
 **Live prototype:** https://shipping-verifier.onrender.com  
 **Repository:** https://github.com/sihen-bot/shipping-verifier
 
-The hosted prototype currently requires a demo login. Obtain access from the team through the submission channel. API keys and database credentials must never be shared as demo credentials.
+The homepage and [public demo](https://shipping-verifier.onrender.com/demo.html) require no login. The demo compares three clearly labelled fictional examples using the same Java rules as the workspace. Its extracted fields are preset; it makes no Gemini calls and does not save reviews. The AI-powered inbox, human reviews, imports and backups remain password-protected. Do not publish workspace credentials.
 
 ## Problem and solution
 
@@ -49,7 +49,7 @@ Cloud data flow: browser over HTTPS to the Spring Boot container on Render. The 
 | Document readers | Apache PDFBox 3.0.8 and Apache POI 5.5.1 |
 | Cloud runtime | Docker on Render, non-root runtime user |
 | Persistence | PostgreSQL through JDBC and a single-instance working-copy adapter |
-| Access | HTTP Basic login and CSRF protection in the cloud profile |
+| Access | Public fictional demo; private workspace uses HTTP Basic login and CSRF protection |
 
 `VerificationController` coordinates the workflow. `GeminiClient` handles calls, caching and pacing. `DocumentReader` reads supported formats. `ShipmentComparison` validates evidence and compares fields. `ReviewController` and `ReportController` handle human records and audit downloads. `DurableData` writes cloud records to PostgreSQL before updating the working copy.
 

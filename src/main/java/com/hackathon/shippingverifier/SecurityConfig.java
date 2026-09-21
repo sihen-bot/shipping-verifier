@@ -20,7 +20,9 @@ public class SecurityConfig {
     }
     @Bean @Profile("cloud")
     SecurityFilterChain cloud(HttpSecurity http)throws Exception {
-        return http.authorizeHttpRequests(a->a.requestMatchers("/health").permitAll().anyRequest().authenticated())
+        return http.authorizeHttpRequests(a->a.requestMatchers(org.springframework.http.HttpMethod.GET,
+                "/health", "/", "/index.html", "/star-platinum.css",
+                "/demo.html", "/demo.js", "/api/demo").permitAll().anyRequest().authenticated())
             .httpBasic(Customizer.withDefaults()).csrf(Customizer.withDefaults()).build();
     }
     @Bean
