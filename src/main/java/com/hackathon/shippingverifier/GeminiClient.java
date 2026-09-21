@@ -23,7 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** Shared Gemini connection. Credentials never leave the request header. */
 @Service
 public class GeminiClient {
-    public static final String MODEL = "gemini-3.6-flash";
+    public static final String MODEL = "gemini-3.1-flash-lite";
     private final JsonMapper mapper;
     private final HttpClient client = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15)).build();
