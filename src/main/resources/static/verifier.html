@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verifier · Star Platinum</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #16324f;
+        }
+
+        header {
+            padding: 24px 32px;
+            background: #16324f;
+            color: white;
+        }
+
+        h1 { margin: 0 0 8px; }
+        header p { margin: 0; color: #cbd5e1; }
+
+        main {
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+            gap: 20px;
+            padding: 24px;
+            max-width: 1500px;
+            margin: auto;
+        }
+
+        aside, article {
+            background: white;
+            border: 1px solid #dbe3ed;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 0;
+        }
+
+        label { display: block; margin-bottom: 8px; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #94a3b8;
+            border-radius: 8px;
+            font: inherit;
+        }
+
+        #status { font-size: 14px; color: #475569; }
+
+        #emailList {
+            max-height: 65vh;
+            overflow-y: auto;
+        }
+
+        .email {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 14px;
+            margin-bottom: 8px;
+            border: 1px solid #dbe3ed;
+            border-radius: 8px;
+            background: white;
+            color: #16324f;
+            cursor: pointer;
+            font: inherit;
+            overflow-wrap: anywhere;
+        }
+
+        .email:hover { background: #f0f9ff; }
+
+        .email[aria-pressed="true"] {
+            background: #e0f2fe;
+            border-color: #0284c7;
+        }
+
+        .email strong, .email span { display: block; }
+
+        .email span {
+            margin-top: 6px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        button:focus-visible, input:focus-visible {
+            outline: 3px solid #0284c7;
+            outline-offset: 2px;
+        }
+
+        #subject { margin-top: 0; overflow-wrap: anywhere; }
+
+        #sender, #emailId, #attachments {
+            overflow-wrap: anywhere;
+        }
+
+        #body {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            line-height: 1.65;
+            font-family: inherit;
+        }
+
+        .muted { color: #64748b; }
+        li { margin-bottom: 8px; }
+
+        @media (max-width: 800px) {
+            main { grid-template-columns: 1fr; padding: 12px; }
+            #emailList { max-height: 320px; }
+        }
+        .actions { display:flex; gap:10px; flex-wrap:wrap; }
+        .action { padding:12px 18px; border:0; border-radius:8px; background:#16324f; color:white; cursor:pointer; font:inherit; }
+        .action.secondary { background:#087f8c; }
+        .action:disabled { opacity:.55; cursor:wait; }
+        .report { margin:20px 0; padding:18px; border:1px solid #cbd5e1; border-radius:10px; }
+        .report[data-state="OK"] { border-left:6px solid #15803d; }
+        .report[data-state="MISMATCH"] { border-left:6px solid #b91c1c; }
+        .report[data-state="NEEDS_REVIEW"] { border-left:6px solid #b45309; }
+        .table-scroll { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:14px; }
+        th, td { padding:12px; text-align:left; border-bottom:1px solid #dbe3ed; vertical-align:top; min-width:110px; }
+        th { background:#f1f5f9; }
+        td { white-space:pre-wrap; overflow-wrap:anywhere; }
+        tr[data-state="MISMATCH"] { background:#fff1f2; }
+        tr[data-state="NEEDS_REVIEW"] { background:#fffbeb; }
+        details { margin-top:8px; white-space:normal; }
+        summary { cursor:pointer; color:#0369a1; }
+        blockquote { margin:8px 0; padding:8px; background:#f8fafc; white-space:pre-wrap; }
+        #verificationMessage { line-height:1.5; }
+    </style>
+<link rel="stylesheet" href="/star-platinum.css"></head>
+<body class="workspace">
+    <a class="skip" href="#main">Skip to content</a><header class="site-header"><a class="brand" href="/"><span class="brand-star" aria-hidden="true">✦</span><span>STAR PLATINUM<small>SHIPPING VERIFIER</small></span></a><nav aria-label="Main navigation"><a href="/">Home</a><a href="/verifier.html" aria-current="page">Verifier</a><a href="/review.html">Human review</a><a href="/storage.html">Data & backup</a></nav></header><div class="page-heading"><p class="eyebrow">DOCUMENT WORKSPACE</p><h1>Every detail counts.</h1><p>Choose an email, compare its documents, and review the evidence.</p></div>
+
+    <main id="main">
+        <aside>
+            <label for="search">Search emails</label>
+            <input id="search" type="search"
+                   placeholder="Subject, sender, or email ID"
+                   disabled>
+            <p id="status" role="status">Loading emails...</p>
+            <div id="emailList"></div>
+        </aside>
+
+        <article>
+            <p id="empty">Select an email to read its contents.</p>
+
+            <section id="details" hidden>
+                <h2 id="subject"></h2>
+                <p><strong>From:</strong> <span id="sender"></span></p>
+                <p><strong>Email ID:</strong> <span id="emailId"></span></p>
+                <div class="actions">
+                    <button id="classifyButton" class="action" type="button">Classify email with AI</button>
+                    <button id="verifyButton" class="action secondary" type="button">Verify shipping documents</button>
+                </div>
+                <p id="classification" role="status">Not classified yet.</p>
+                <p class="muted">Verification checks the email category and compares readable TXT, PDF, Word and Excel attachments when needed.
+                    Selected email details and document text are sent to Google Gemini. Each verification can make up to three AI requests.</p>
+                <p id="verificationMessage" role="status" aria-live="polite"></p>
+                <section id="verificationReport" class="report" hidden>
+                    <h3 id="reportTitle"></h3>
+                    <p id="reportSummary"></p>
+                    <p id="reportMeta" class="muted"></p>
+                    <ul id="reportDocuments"></ul>
+                    <div class="table-scroll">
+                        <table id="comparisonTable">
+                            <caption>Shipping Instruction (reference) compared with draft Bill of Lading</caption>
+                            <thead><tr><th scope="col">Field</th><th scope="col">SI value</th><th scope="col">BL value</th><th scope="col">Result</th></tr></thead>
+                            <tbody id="comparisonRows"></tbody>
+                        </table>
+                    </div>
+                </section>
+                <p><a id="reviewLink" href="/review.html">Open human review — no AI quota needed</a></p>
+                <h3>Message</h3>
+                <div id="body"></div>
+
+                <h3>Attachments</h3>
+                <ul id="attachments"></ul>
+                <p class="muted">
+                    Click an attachment to preview its extracted text locally; this uses no AI quota.
+                    Scanned pages and unsupported content require review.
+                </p>
+            </section>
+        </article>
+    </main>
+
+    <script src="/session.js"></script>
+<script>
+        const search = document.getElementById("search");
+        const status = document.getElementById("status");
+        const emailList = document.getElementById("emailList");
+
+        let emails = [];
+        let selectedId = null;
+
+        function showEmail(email) {
+            selectedId = email.email_id;
+
+            document.getElementById("classification").textContent = "Not classified yet.";
+            document.getElementById("verificationReport").hidden = true;
+            document.getElementById("verificationMessage").textContent = "";
+            if (reports.has(selectedId)) renderReport(reports.get(selectedId));
+            if (categories.has(selectedId)) {
+                document.getElementById("classification").textContent = "AI category: " + categories.get(selectedId);
+            }
+            if (errors.has(selectedId)) {
+                document.getElementById("verificationMessage").textContent = errors.get(selectedId);
+            }
+            if (activeEmailId === selectedId) {
+                document.getElementById("verificationMessage").textContent = "An AI request for this email is still running...";
+            }
+
+            document.getElementById("empty").hidden = true;
+            document.getElementById("details").hidden = false;
+
+            document.getElementById("subject").textContent =
+                email.subject || "(No subject)";
+            document.getElementById("sender").textContent =
+                email.from || "(No sender)";
+            document.getElementById("emailId").textContent =
+                email.email_id;
+            document.getElementById("body").textContent =
+                email.body || "(No message body)";
+
+            document.getElementById("reviewLink").href = `/review.html?email=${encodeURIComponent(email.email_id)}`;
+            const attachments = document.getElementById("attachments");
+            attachments.replaceChildren();
+
+            const paths = Array.isArray(email.attachments)
+                ? email.attachments : [];
+
+            if (paths.length === 0) {
+                const item = document.createElement("li");
+                item.textContent = "No attachments listed.";
+                attachments.appendChild(item);
+            } else {
+paths.forEach((path, index) => {
+    const item = document.createElement("li");
+    const filename = path.split("/").pop();
+
+    if (/\.(txt|pdf|docx|xlsx)$/i.test(path)) {
+        const link = document.createElement("a");
+
+        link.textContent = filename;
+        link.href =
+            `/api/emails/${encodeURIComponent(email.email_id)}` +
+            `/attachments/${index}/text`;
+
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        item.appendChild(link);
+    } else {
+        item.textContent =
+            `${filename} — preview not available yet`;
+    }
+
+    attachments.appendChild(item);
+});
+            }
+
+            for (const button of emailList.querySelectorAll("button")) {
+                button.setAttribute(
+                    "aria-pressed",
+                    String(button.dataset.emailId === selectedId)
+                );
+            }
+        }
+
+        function renderList() {
+            const query = search.value.trim().toLowerCase();
+
+            const matches = emails.filter(email => {
+                const searchable = [
+                    email.email_id,
+                    email.subject,
+                    email.from
+                ].join(" ").toLowerCase();
+
+                return searchable.includes(query);
+            });
+
+            status.textContent =
+                `${matches.length} of ${emails.length} emails`;
+
+            emailList.replaceChildren();
+
+            if (matches.length === 0) {
+                const message = document.createElement("p");
+                message.textContent = "No emails match your search.";
+                emailList.appendChild(message);
+                return;
+            }
+
+            for (const email of matches) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "email";
+                button.dataset.emailId = email.email_id;
+                button.setAttribute(
+                    "aria-pressed",
+                    String(email.email_id === selectedId)
+                );
+
+                const title = document.createElement("strong");
+                title.textContent = email.subject || "(No subject)";
+
+                const metadata = document.createElement("span");
+                metadata.textContent =
+                    `${email.email_id} | ${email.from || "(No sender)"}`;
+
+                button.append(title, metadata);
+                button.addEventListener("click", () => showEmail(email));
+                emailList.appendChild(button);
+            }
+        }
+
+        async function loadEmails() {
+            try {
+                const response = await fetch("/api/emails");
+
+                if (!response.ok) {
+                    throw new Error(`Server returned HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!Array.isArray(data.emails)) {
+                    throw new Error("The server returned an unexpected format.");
+                }
+
+                emails = data.emails;
+                search.disabled = false;
+                renderList();
+            } catch (error) {
+                status.textContent =
+                    `Could not load emails: ${error.message}. ` +
+                    "Check that the application is running, then refresh.";
+                console.error(error);
+            }
+        }
+        const classifyButton = document.getElementById("classifyButton");
+        const verifyButton = document.getElementById("verifyButton");
+        const classification = document.getElementById("classification");
+        const verificationMessage = document.getElementById("verificationMessage");
+        const reports = new Map();
+        const categories = new Map();
+        const errors = new Map();
+        let activeEmailId = null;
+
+        const labels = {
+            shipper: "Shipper", consignee: "Consignee", notify_party: "Notify party",
+            port_of_loading: "Port of loading", port_of_discharge: "Port of discharge",
+            container_count: "Container count", gross_weight_kg: "Gross weight (kg)"
+        };
+        const states = { OK: "No mismatch detected", MISMATCH: "Mismatch detected",
+            NEEDS_REVIEW: "Needs human review", NOT_APPLICABLE: "Comparison not required" };
+
+        function valueCell(value, evidence) {
+            const cell = document.createElement("td");
+            const text = document.createElement("div");
+            text.textContent = value == null || value === "" ? "Not established" : value;
+            cell.appendChild(text);
+            if (evidence) {
+                const details = document.createElement("details");
+                const summary = document.createElement("summary");
+                summary.textContent = "Source quotation";
+                const quote = document.createElement("blockquote");
+                quote.textContent = evidence;
+                details.append(summary, quote);
+                cell.appendChild(details);
+            }
+            return cell;
+        }
+
+        function renderReport(data) {
+            const report = document.getElementById("verificationReport");
+            report.hidden = false;
+            report.dataset.state = data.status;
+            document.getElementById("reportTitle").textContent = states[data.status] || data.status;
+            document.getElementById("reportSummary").textContent = data.summary;
+            document.getElementById("reportMeta").textContent =
+                `${data.email_id} | ${data.category} | ${data.model}`;
+            const docs = document.getElementById("reportDocuments");
+            docs.replaceChildren();
+            for (const doc of data.documents || []) {
+                const item = document.createElement("li");
+                const link = document.createElement("a");
+                link.textContent = `${doc.type || "Uncertain type"}: ${doc.path}`;
+                link.href = `/api/emails/${encodeURIComponent(data.email_id)}/attachments/${doc.index}/text`;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                item.appendChild(link);
+                docs.appendChild(item);
+            }
+            const rows = document.getElementById("comparisonRows");
+            rows.replaceChildren();
+            document.getElementById("comparisonTable").hidden = !(data.fields || []).length;
+            for (const field of data.fields || []) {
+                const row = document.createElement("tr");
+                row.dataset.state = field.status;
+                const name = document.createElement("th");
+                name.scope = "row";
+                name.textContent = labels[field.field] || field.field;
+                const result = document.createElement("td");
+                const state = document.createElement("strong");
+                state.textContent = field.status.replaceAll("_", " ");
+                const detail = document.createElement("p");
+                detail.textContent = field.detail;
+                result.append(state, detail);
+                row.append(name, valueCell(field.si, field.si_evidence), valueCell(field.bl, field.bl_evidence), result);
+                rows.appendChild(row);
+            }
+        }
+
+        async function runAi(operation) {
+            if (!selectedId || activeEmailId !== null) return;
+            const requestedId = selectedId;
+            activeEmailId = requestedId;
+            errors.delete(requestedId);
+            classifyButton.disabled = true;
+            verifyButton.disabled = true;
+            verificationMessage.textContent = operation === "verify"
+                ? "Checking the email and reading both documents. This may take a few minutes..."
+                : "Classifying the selected email...";
+            if (operation === "verify") {
+                reports.delete(requestedId);
+                document.getElementById("verificationReport").hidden = true;
+            }
+            try {
+                const response = await fetch(`/api/emails/${encodeURIComponent(requestedId)}/${operation}`, { method: "POST" });
+                const raw = await response.text();
+                let data;
+                try { data = JSON.parse(raw); }
+                catch { throw new Error(`Server returned an unreadable response (HTTP ${response.status}).`); }
+                if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+                categories.set(requestedId, data.category);
+                if (operation === "verify") reports.set(requestedId, data);
+                if (selectedId === requestedId) {
+                    classification.textContent = `AI category: ${data.category} | Model: ${data.model}`;
+                    verificationMessage.textContent = operation === "verify" ? "Verification completed." : "Classification completed.";
+                    if (operation === "verify") renderReport(data);
+                }
+            } catch (error) {
+                const message = `Processing failed: ${error.message} No new result was produced. You can retry.`;
+                errors.set(requestedId, message);
+                if (selectedId === requestedId) verificationMessage.textContent = message;
+            } finally {
+                activeEmailId = null;
+                classifyButton.disabled = false;
+                verifyButton.disabled = false;
+            }
+        }
+        classifyButton.addEventListener("click", () => runAi("classify"));
+        verifyButton.addEventListener("click", () => runAi("verify"));
+        search.addEventListener("input", renderList);
+        loadEmails();
+    </script>
+</body>
+</html>
