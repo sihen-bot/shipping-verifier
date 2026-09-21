@@ -69,7 +69,7 @@ public final class ShipmentComparison {
                             detail = "Port names agree; an optional matching location code is omitted on one side.";
                         } else if (!codeA.isEmpty() && codeA.equals(codeB)) {
                             state = "NEEDS_REVIEW";
-                            detail = "The location code agrees but port wording differs. Confirm whether this is an alias.";
+                            detail = "Conflicting port/location names despite an identical location code. The shared code does not establish a match. Check both source documents and confirm the intended port before approving the draft.";
                         }
                     }
                 } catch (IllegalArgumentException invalid) {
