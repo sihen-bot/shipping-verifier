@@ -15,7 +15,8 @@ import tools.jackson.databind.json.JsonMapper;
 public class ReviewController {
     private final JsonMapper mapper;
     private final DocumentReader reader = new DocumentReader();
-    public ReviewController(JsonMapper mapper) { this.mapper = mapper; }
+    private final DurableData data;
+    public ReviewController(JsonMapper mapper, DurableData data) { this.mapper = mapper; this.data = data; }
     public record Entry(String value, String evidence) {}
     public record Submission(String reviewer, String note, int siIndex, int blIndex,
         String siHash, String blHash, Map<String,Entry> si, Map<String,Entry> bl, String aiReportId) {
@@ -78,10 +79,10 @@ public class ReviewController {
             record.put("approved",false);
             record.put("ai_baseline",baseline);
             Path folder=Path.of("data","reviews",id);Files.createDirectories(folder);
-            Files.writeString(folder.resolve(reviewId+".json"),mapper.writeValueAsString(record),StandardOpenOption.CREATE_NEW);
+            data.write(folder.resolve(reviewId+".json"),mapper.writeValueAsString(record).getBytes(StandardCharsets.UTF_8),true);
             return ResponseEntity.ok(record);
         } catch(ReviewFailure e){return failure(e.status,e.getMessage());}
-        catch(Exception e){return failure(500,"Could not save the review. Check the local data folder.");}
+        catch(Exception e){return failure(500,"Could not save the review. Check data storage availability.");}
     }
     private boolean baselineMatches(String id,JsonNode baseline,List<Source> sources)throws Exception {
         if(baseline==null || !AiReportStore.RULES.equals(baseline.path("rules_version").asString("")))return false;

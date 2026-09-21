@@ -72,7 +72,9 @@ public class VerificationController {
         Do not infer a value from an email, previous shipment, or your knowledge.
         """;
 
-    public VerificationController(JsonMapper mapper, GeminiClient gemini, AiController classifier) {
+    private final DurableData storage;
+    public VerificationController(JsonMapper mapper, GeminiClient gemini, AiController classifier, DurableData storage) {
+        this.storage = storage;
         this.mapper = mapper; this.gemini = gemini; this.classifier = classifier;
     }
 
@@ -160,7 +162,7 @@ public class VerificationController {
             // Null means unresolved, never a clean report. Confirmed field differences remain visible.
             report.put("has_defect", result.status().equals("NEEDS_REVIEW") ? null : !result.defect_fields().isEmpty());
             if (result.status().equals("NEEDS_REVIEW")) report.put("review_reason", "uncertain_or_missing_value");
-            AiReportStore.save(mapper, emailId, emailText, report);
+            AiReportStore.save(storage,mapper, emailId, emailText, report);
             return ResponseEntity.ok(report);
         } catch (GeminiClient.AiFailure failure) {
             return error(failure.status(), failure.getMessage());

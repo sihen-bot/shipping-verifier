@@ -21,17 +21,12 @@ public final class AiReportStore {
         if(!id.matches("email_\\d+"))throw new IllegalArgumentException("Invalid email ID");
         return Path.of("data","ai-reports",id);
     }
-    public static void save(JsonMapper mapper,String id,String emailText,Map<String,Object> report)throws IOException {
+    public static void save(DurableData data,JsonMapper mapper,String id,String emailText,Map<String,Object> report)throws IOException {
         String reportId=UUID.randomUUID().toString();
         report.put("ai_report_id",reportId);report.put("saved_at",Instant.now().toString());
         report.put("rules_version",RULES);report.put("email_sha256",hash(emailText));
         Path dir=folder(id);Files.createDirectories(dir);
-        Path temporary=Files.createTempFile(dir,"pending-",".tmp");
-        try {
-            Files.writeString(temporary,mapper.writeValueAsString(report));
-            try {Files.move(temporary,dir.resolve(reportId+".json"),StandardCopyOption.ATOMIC_MOVE);}
-            catch(AtomicMoveNotSupportedException e){Files.move(temporary,dir.resolve(reportId+".json"));}
-        }finally{Files.deleteIfExists(temporary);}
+        data.write(dir.resolve(reportId+".json"),mapper.writeValueAsString(report).getBytes(StandardCharsets.UTF_8),true);
     }
     public static JsonNode read(JsonMapper mapper,String id,String reportId)throws IOException {
         if(reportId==null || !reportId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))throw new IllegalArgumentException("Invalid AI report ID");

@@ -28,7 +28,8 @@ public class GeminiClient {
     private final HttpClient client = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15)).build();
 
-    public GeminiClient(JsonMapper mapper) { this.mapper = mapper; }
+    private final DurableData data;
+    public GeminiClient(JsonMapper mapper, DurableData data) { this.mapper = mapper; this.data = data; }
 
     private long nextRequestNanos;
     private final Path cacheDirectory = Path.of("data", "ai-cache");
@@ -66,23 +67,10 @@ public class GeminiClient {
             throw failure;
         }
         if (cacheable(answer, json)) {
-            Path temporary = null;
             try {
-                Files.createDirectories(cacheDirectory);
-                temporary = Files.createTempFile(cacheDirectory, "pending-", ".tmp");
-                Files.writeString(temporary, answer);
-                try {
-                    Files.move(temporary, cacheFile, StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING);
-                } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
-                    Files.move(temporary, cacheFile, StandardCopyOption.REPLACE_EXISTING);
-                }
+                data.write(cacheFile, answer.getBytes(StandardCharsets.UTF_8), false);
             } catch (IOException error) {
-                System.err.println("AI cache could not be saved: " + error.getClass().getSimpleName());
-            } finally {
-                if (temporary != null) {
-                    try { Files.deleteIfExists(temporary); } catch (IOException ignored) { }
-                }
+                throw new AiFailure(503, "AI answered, but its cache could not be saved. Check data storage before retrying.");
             }
         }
         return answer;

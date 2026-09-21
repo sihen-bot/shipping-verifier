@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Shipping Verifier — Data setup</title>
+<style>body{font:17px/1.6 system-ui,sans-serif;background:#f1f5f9;color:#16324f;margin:0;padding:30px}main{max-width:780px;margin:auto;background:white;padding:32px;border-radius:16px}button,input{font:inherit}button{background:#16324f;color:white;border:0;border-radius:8px;padding:12px 20px;margin-top:20px;cursor:pointer}button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:16px}a{color:#164f88}</style></head>
+<body><main><a href="/">← Inbox</a><h1>Data setup and backup</h1>
+<p>Import your local data ZIP once into an empty cloud database. This preserves your emails, attachments, saved reviews and existing AI cache. Importing does not call Gemini.</p>
+<p>Existing database records cannot be replaced through this page. Imported review names remain self-reported; importing does not verify their identity or approve documents.</p>
+<p>Limits: ZIP 30 MB, each file 10 MB, expanded total 50 MB. Use the supplied Export-Data.ps1 script to prepare the ZIP.</p>
+<label for="file">Data ZIP</label> <input id="file" type="file" accept=".zip,application/zip"><br>
+<button id="import" type="button" disabled>Import data</button> <button id="refresh" type="button">Refresh status</button>
+<pre id="status" role="status">Checking storage…</pre>
+<h2>Keep a backup</h2><p>The free Render database expires after 30 days. Download a backup after important reviews and keep your original local data.</p>
+<a href="/api/admin/backup">Download database backup ZIP</a>
+</main><script src="/session.js"></script><script>
+const statusBox=document.getElementById('status'), importButton=document.getElementById('import');
+async function refresh(){
+  importButton.disabled=true;
+  try {const r=await fetch('/api/admin/storage',{cache:'no-store'});const body=await r.json();if(!r.ok)throw Error(body.error||'Storage check failed.');
+    statusBox.textContent=JSON.stringify(body,null,2);importButton.disabled=!(body.ready&&body.storage==='postgresql'&&body.files===0);
+  }catch(e){statusBox.textContent=e.message;}
+}
+importButton.addEventListener('click',async()=>{
+ const file=document.getElementById('file').files[0];if(!file){statusBox.textContent='Choose your exported data ZIP first.';return;}
+ importButton.disabled=true;statusBox.textContent='Importing. Keep this page open…';
+ try {const form=new FormData();form.append('file',file);const r=await fetch('/api/admin/import',{method:'POST',body:form});
+ const body=await r.json();if(!r.ok)throw Error(body.error||'Import failed.');statusBox.textContent=body.message+'\n'+JSON.stringify(body.storage,null,2);
+ }catch(e){statusBox.textContent=e.message+' Refresh status before retrying.';}
+});
+document.getElementById('refresh').addEventListener('click',refresh);refresh();
+</script></body></html>

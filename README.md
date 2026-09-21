@@ -1,3 +1,9 @@
+# PostgreSQL cloud update
+
+Start with [CLOUD-SETUP.md](CLOUD-SETUP.md) for the current free Render setup.
+The PostgreSQL adapter supersedes the persistent-volume deployment instructions
+below. Keep local data and use the one-time protected importer.
+
 # Shipping Verifier — consolidated project
 
 This project combines the uploaded working project with audit export, corrected

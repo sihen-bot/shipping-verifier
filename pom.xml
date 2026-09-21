@@ -5,6 +5,7 @@
   <groupId>com.hackathon</groupId><artifactId>shipping-verifier</artifactId><version>0.0.1-SNAPSHOT</version>
   <properties><java.version>21</java.version></properties>
   <dependencies>
+    <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>runtime</scope></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc-test</artifactId><scope>test</scope></dependency>
